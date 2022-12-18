@@ -14,7 +14,7 @@ class Node:
     
     def equals(self, other):
         """Whether the curent object is equal to another object"""
-        return (self.path == other.path) # This compares all elements in the lists
+        return (self.comp(other) == 0)
     
     def is_ancestor_of(self, other):
         """Whether the current object is an ancestor of the other object"""
@@ -36,14 +36,14 @@ class Node:
 
     def comp(self, other):
         """Comparison function (returning -1,0,1) following lexicographic order"""
-        # The < operator between lists should do the same, but making the logic explicit here
+        # The </== operators between lists should do the same, but making the logic explicit here
         i = 0
         while True:
-            if i > len(self.path):
-                if i > len(other.path):
+            if i >= len(self.path):
+                if i >= len(other.path):
                     return 0
                 return -1 # self.path is shorter and a prefix
-            if i > len(other.path):
+            if i >= len(other.path):
                 return 1 # other.path is shorter and a prefix
             if self.path[i] < other.path[i]:
                 return -1
@@ -58,5 +58,15 @@ class Node:
     def is_greater(self, other):
         """Whether the current object is greater than another following lexicographic order"""
         return (self.comp(other) == 1)
+
+if __name__ == '__main__':
+    
+    # Test code
+    assert Node(['a','b','c']).is_descendant_of(Node(['a']))
+    assert not Node(['a','c']).is_descendant_of(Node(['x']))
+    assert Node(['a','b','c']).equals(Node(['a','b','c','d']).get_parent())
+    assert Node(['a','b','c']).is_less(Node(['a','c']))
+    assert Node([]).is_parent_of(Node(['a']))
+    print("Tests done")
 
         
