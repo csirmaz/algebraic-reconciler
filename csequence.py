@@ -3,6 +3,7 @@ from cset import CSet
 from command import Command
 from node import Node
 from value import Value
+from heapsort import heap_sort
 
 class CSequence:
     """A command sequence
@@ -31,22 +32,17 @@ class CSequence:
     
     def order_by_node(self):
         """Return another sequence in which the commands are ordered by node; on equivalent nodes the original ordering is kept"""
-        return self.order_by_node_bubble()
+        order = [i for i in range(len(self.commands))]
+        def comp(a, b):
+            r = self.commands[b].node.comp(self.commands[a].node)
+            if r != 0: return r
+            if a == b: return 0
+            if a < b: return 1
+            return -1
+        heap_sort(order, comp)
+        return CSequence([self.commands[i] for i in order])
     
-    
-    def order_by_node_bubble(self):
-        """Bubble sort implementation of order_by_node()"""
-        commands = self.commands[:] # shallow clone
-        changed = True
-        while changed:
-            changed = False
-            for i in range(len(commands)-1):
-                if commands[i].node.comp(commands[i+1].node) == 1:
-                    commands[i], commands[i+1] = commands[i+1], commands[i]
-                    changed = True
-        return CSequence(commands)
 
-    
     def get_canonical_set(self):
         """Return the canonical command set equivalent to this sequence.
         Note: We're not checking if the sequence is breaking"""
