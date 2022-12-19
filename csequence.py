@@ -1,6 +1,4 @@
 
-import functools
-
 from cset import CSet
 from command import Command
 from node import Node
@@ -15,9 +13,11 @@ class CSequence:
     def __init__(self, commands):
         assert isinstance(commands, list)
         self.commands = commands
-        
+    
+    
     def as_string(self):
         return '.'.join([c.as_string() for c in self.commands])
+    
     
     def equals(self, other):
         """Whether the two sequences are equal"""
@@ -28,9 +28,14 @@ class CSequence:
                 return False
         return True
     
+    
     def order_by_node(self):
         """Return another sequence in which the commands are ordered by node; on equivalent nodes the original ordering is kept"""
-        # Bubble sort for now
+        return self.order_by_node_bubble()
+    
+    
+    def order_by_node_bubble(self):
+        """Bubble sort implementation of order_by_node()"""
         commands = self.commands[:] # shallow clone
         changed = True
         while changed:
@@ -40,32 +45,39 @@ class CSequence:
                     commands[i], commands[i+1] = commands[i+1], commands[i]
                     changed = True
         return CSequence(commands)
+
     
     def get_canonical_set(self):
-        """Return the canonical command set equivalent to this sequence"""
-        prev = None
+        """Return the canonical command set equivalent to this sequence.
+        Note: We're not checking if the sequence is breaking"""
+        prev_node = None
+        prev_before = None
         out = set()
-        for c in self.order_by_node().commands:
-            # Skip null commands
-            if c.is_null():
-                continue
-            # Skip commands on the same nodes
-            if prev is None:
-                prev = c
-                continue
-            else:
-                if prev.node.equals(c.node):
-                    prev = Command(c.node, prev.before, c.after)
-                else:
-                    out.add(prev)
-                    prev = c
-        if prev is not None:
-            out.add(prev)
+        commands = self.order_by_node().commands
+        for i in range(len(commands)):
+            c_this = commands[i]
+            c_next = None
+            if i < len(commands) - 1:
+                c_next = commands[i+1]
+            
+            if prev_node is None:
+                prev_node = c_this.node
+                prev_before = c_this.before
+                
+            if c_next is None or not c_next.node.equals(prev_node):
+                # End of current block of the same node
+                c_new = Command(prev_node, prev_before, c_this.after)
+                if not c_new.is_null():
+                    out.add(c_new)
+                prev_node = None
+                prev_before = None
+            
         return CSet(out)
+    
     
     @classmethod
     def from_set(cls, cset):
-        """Dumb function to turn a command set into a command sequence"""
+        """Dumb function to turn a command set into a command sequence; the order of commands is not guaranteed"""
         return CSequence(list(cset.commands))
 
     
