@@ -92,7 +92,7 @@ class CSequence:
                 if prev_node.equals(this_node):
                     # Not canonical as multiple commands on the same node
                     return False
-            prev_node = seq[i].node
+            prev_node = this_node
 
             if i == 0:
                 up_pointers.append(None)
@@ -108,6 +108,7 @@ class CSequence:
                         return False
                     
                     break
+
                 up = up_pointers[up]
 
         return True            
