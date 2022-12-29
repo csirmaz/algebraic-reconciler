@@ -13,10 +13,12 @@ class Value:
     T_EMPTY = 100
     T_FILE = 101
     T_DIR = 102
-    
+
+
     def __init__(self, type_, contents):
         self.type_ = type_
         self.contents = contents
+
         
     def as_string(self):
         t = {
@@ -26,23 +28,44 @@ class Value:
         }
         return f"{t[self.type_]}({self.contents})"
     
+    
+    def is_empty(self):
+        """Whether the value is an empty value"""
+        return (self.type_ == self.T_EMPTY)
+    
+    
+    def is_file(self):
+        """Whether the value is a file"""
+        return (self.type_ == self.T_FILE)
+    
+    
+    def is_dir(self):
+        """Whether the value is a directory"""
+        return (self.type_ == self.T_DIR)
+
+    
     def type_eq(self, other):
         """Whether the current and another object are type-equal"""
         return (self.type_ == other.type_)
+
     
     def type_less(self, other):
         """Whether the current object is type-less than another object"""
         return (self.type_ < other.type_)
 
+
     def type_less_eq(self, other):
         """Whether the current object is type-less-or-equal than another object"""
         return (self.type_ <= other.type_)
+
     
     def type_greater(self, other):
         return (self.type_ > other.type_)
+
     
     def type_greater_eq(self, other):
         return (self.type_ >= other.type_)
+
     
     def equals(self, other):
         """Whether the current object and another are equal"""

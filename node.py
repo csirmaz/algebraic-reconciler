@@ -8,31 +8,38 @@ class Node:
     
     def __init__(self, path):
         self.path = path
-        
+
+
     def as_string(self):
         return '/'.join(self.path)
+
     
     def equals(self, other):
         """Whether the curent object is equal to another object"""
         return (self.comp(other) == 0)
+
     
     def is_ancestor_of(self, other):
         """Whether the current object is an ancestor of the other object"""
         if len(self.path) >= len(other.path):
             return False
         return (self.path == other.path[0:len(self.path)])
+
     
     def is_descendant_of(self, other):
         """Whether the current object is a descendand of another object"""
         return other.is_ancestor_of(self)
+
     
     def is_parent_of(self, other):
         """Whether the current object is the parent of another object"""
         return (self.path == other.path[0:-1])
+
     
     def get_parent(self):
         """Get an object representing the parent of the current object"""
         return Node(self.path[0:-1])
+
 
     def comp(self, other):
         """Comparison function (returning -1,0,1) following lexicographic order"""
@@ -50,14 +57,17 @@ class Node:
             if self.path[i] > other.path[i]:
                 return 1
             i += 1
+
             
     def is_less(self, other):
         """Whether the current object is less than another following lexicographic order"""
         return (self.comp(other) == -1)
+
     
     def is_greater(self, other):
         """Whether the current object is greater than another following lexicographic order"""
         return (self.comp(other) == 1)
+
 
 if __name__ == '__main__':
     
@@ -69,4 +79,3 @@ if __name__ == '__main__':
     assert Node([]).is_parent_of(Node(['a']))
     print("Tests done")
 
-        

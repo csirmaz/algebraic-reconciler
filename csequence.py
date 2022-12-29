@@ -75,19 +75,60 @@ class CSequence:
     def from_set(cls, cset):
         """Dumb function to turn a command set into a command sequence; the order of commands is not guaranteed"""
         return CSequence(list(cset.commands))
+    
+
+    @classmethod
+    def is_set_canonical(cls, cset):
+        """Check whether a set of commands is canonical. This algorithm is, apart from the ordering, is linear in the size of the set"""
+        seq = cls.from_set(cset).order_by_node().commands
+        
+        up_pointers = [] # Stores the "up" pointers: the index of the command pointed to
+        prev_node = None
+        for i in range(len(seq)):
+            
+            this_node = seq[i].node
+            
+            if prev_node is not None:
+                if prev_node.equals(this_node):
+                    # Not canonical as multiple commands on the same node
+                    return False
+            prev_node = seq[i].node
+
+            if i == 0:
+                up_pointers.append(None)
+                continue
+            
+            up = i - 1
+            while True:
+                if up is None or seq[up].node.is_ancestor_of(this_node):
+                    up_pointers.append(up)
+                    
+                    if up is not None and not (seq[up].is_constructor_pair_with_next(seq[i]) or seq[i].is_destructor_pair_with_next(seq[up])):
+                        # Not canonical because closest command on an ancestor is not on a parent or they do not form a valid pair
+                        return False
+                    
+                    break
+                up = up_pointers[up]
+
+        return True            
 
     
 if __name__ == '__main__':
     
     # Test code
-    c1 = Command(Node(['d1']), Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D1'))
-    c2 = Command(Node(['d1', 'd2']), Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2'))
-    c2b = Command(Node(['d1', 'd2']), Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2b'))
-    c3 = Command(Node(['d1', 'd2', 'f3']), Value(Value.T_EMPTY, 'e'), Value(Value.T_FILE, 'F'))
+    c1 =  Command(Node(['d1']),             Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D1'))
+    c2 =  Command(Node(['d1', 'd2']),       Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2'))
+    c2b = Command(Node(['d1', 'd2']),       Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2b'))
+    c3 =  Command(Node(['d1', 'd2', 'f3']), Value(Value.T_EMPTY, 'e'), Value(Value.T_FILE, 'F'))
     s = CSequence([c1, c2, c2b, c3])
     s2 = CSequence([c3, c2, c1, c2b])
     sc = CSequence([c1, c2b, c3])
     assert s2.order_by_node().equals(s)
     assert CSequence.from_set(s2.get_canonical_set()).order_by_node().equals(sc)
+
+    assert CSequence.is_set_canonical(CSet({c1, c2, c3}))
+    assert not CSequence.is_set_canonical(CSet({c2, c2b}))
+    assert not CSequence.is_set_canonical(CSet({c1, c3}))
+
     print("Tests done")
     
