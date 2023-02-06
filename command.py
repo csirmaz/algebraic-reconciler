@@ -5,11 +5,20 @@ class Command:
         self.node = node # a Node object`
         self.before = before # a Value object
         self.after = after # a Value object
+        self.prev = None # an optional pointer to another command in a double-linked list
+        self.next = None # an optional pointer to another command in a single-linked list
+        self.up = None # an optional up pointer to another command
+        self.order = None # an optional index used during ordering
 
 
     def as_string(self):
         return f"<{self.node.as_string()}, {self.before.as_string()}, {self.after.as_string()}>"
 
+
+    def clone(self):
+        """Return a clone excluding the pointers specific to a command in a list"""
+        return Command(self.node, self.before, self.after)
+        
         
     def equals(self, other):
         """Whether the current object and another are equal"""

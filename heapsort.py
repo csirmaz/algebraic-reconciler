@@ -1,5 +1,6 @@
 
 # Stable implementation of the heapsort algorithm
+# This implementation uses indexable lists, but an implementation using linked lists only can be used if needed
 
 def heapify(arr, length, root, comp):
     # Build max heap
