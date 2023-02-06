@@ -39,7 +39,7 @@ class CSequence:
     def add_backlinks(self):
         """Convert a single-linked list to a double-linked list"""
         prev_command = None
-        for command in commands:
+        for command in self.forward():
             command.prev = prev_command
             prev_command = command
         self.end = prev_command
