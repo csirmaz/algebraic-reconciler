@@ -3,7 +3,12 @@
 class Value:
     """Class representing a filesystem value
     
-    v = Value(Value.T_FILE, 'f1')
+    Properties:
+        - type_: T_EMPTY | T_FILE | T_DIR
+        - contents: string representing the file contents
+        
+    Usage:
+        v = Value(Value.T_FILE, 'f1')
     """
     
     # Constants describing the type of the value
@@ -16,11 +21,18 @@ class Value:
 
 
     def __init__(self, type_, contents):
+        """Constructor.
+        
+        Arguments:
+            - type_: T_EMPTY | T_FILE | T_DIR
+            - contents: string representing the file contents
+        """
         self.type_ = type_
         self.contents = contents
 
         
     def as_string(self):
+        """Return a string representation of the object"""
         t = {
             self.T_EMPTY: 'E',
             self.T_FILE: 'F',
@@ -45,30 +57,32 @@ class Value:
 
     
     def type_eq(self, other):
-        """Whether the current and another object are type-equal"""
+        """Whether the current and another Value object are type-equal"""
         return (self.type_ == other.type_)
 
     
     def type_less(self, other):
-        """Whether the current object is type-less than another object"""
+        """Whether the current object is type-less than another Value object"""
         return (self.type_ < other.type_)
 
 
     def type_less_eq(self, other):
-        """Whether the current object is type-less-or-equal than another object"""
+        """Whether the current object is type-less-or-equal than another Value object"""
         return (self.type_ <= other.type_)
 
     
     def type_greater(self, other):
+        """Whether the current object is type-greater than another Value object"""
         return (self.type_ > other.type_)
 
     
     def type_greater_eq(self, other):
+        """Whether the current object is type-greater-or-equal than another Value object"""
         return (self.type_ >= other.type_)
 
     
     def equals(self, other):
-        """Whether the current object and another are equal"""
+        """Whether the current object and another Value object are equal"""
         return (self.type_ == other.type_ and self.contents == other.contents)
     
     

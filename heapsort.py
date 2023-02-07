@@ -20,7 +20,12 @@ def heapify(arr, length, root, comp):
 
 
 def heap_sort(arr, comp):
-    """In-place sort arr (array) according to comp (comparison function, comp(a, b) := sign(b - a) )"""
+    """Main function. Sort arr in-place (array) according to comp
+    
+    Arguments:
+        - arr: list
+        - comp: comparison function, invoked with two elements and should return -1/0/1, e.g. comp(a, b) := sign(b - a)
+    """
     
     n = len(arr)
 
@@ -39,7 +44,7 @@ def heap_sort(arr, comp):
 
 
 def print_heap(arr, length, end="\n"):
-    """Display heap"""
+    """Display heap, for debugging"""
     n = length
     print(", ".join([f"{arr[i]}>{arr[2*i+1]}:{arr[2*i+2] if 2*i+2<n else 'x'}" for i in range(n//2)]), end=end)
 

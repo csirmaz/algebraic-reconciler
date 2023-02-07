@@ -1,17 +1,39 @@
 
 class Command:
+    """Class representing a filesystem command.
+    
+    Properties:
+        - node: a Node object
+        - before: a Value object; the input value
+        - after: a Value object; the output value
+        - prev: an optional pointer to another command in a double-linked list
+        - next: an optional pointer to another command in a single-linked list
+        - up: an optional up pointer to another command
+        - order: an optional index used during ordering
+    
+    Usage:
+        c = Command(node, before_value, after_value)
+    """
     
     def __init__(self, node, before, after):
-        self.node = node # a Node object`
-        self.before = before # a Value object
-        self.after = after # a Value object
-        self.prev = None # an optional pointer to another command in a double-linked list
-        self.next = None # an optional pointer to another command in a single-linked list
-        self.up = None # an optional up pointer to another command
-        self.order = None # an optional index used during ordering
+        """Constructor.
+        
+        Arguments:
+            - node: a Node object
+            - before: a Value object; the input value
+            - after: a Value object; the output value
+        """
+        self.node = node
+        self.before = before
+        self.after = after
+        self.prev = None
+        self.next = None
+        self.up = None
+        self.order = None
 
 
     def as_string(self):
+        """Return a string representation of the object"""
         return f"<{self.node.as_string()}, {self.before.as_string()}, {self.after.as_string()}>"
 
 

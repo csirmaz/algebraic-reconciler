@@ -8,18 +8,28 @@ from heapsort import heap_sort
 class CSequence:
     """A single- or double-linked list of commands
     
-    s = CSequence([c1, c2])
+    Properties:
+        - start: the first Command object in the sequence, or False if the sequence is empty
+        - end: the last Command object in the sequence, or False if the sequence is empty, or None if the sequence is single-linked
+    
+    Usage:
+        s = CSequence([command1, command2])
     """
     
     def __init__(self, commands):
+        """Constructor.
+        
+        Arguments:
+            - commands: a list of Command objects
+        """
         assert isinstance(commands, list)
+        self.start = None
+        self.end = None
 
         if len(commands) == 0:
             self.start = False # note that we are an empty list
             self.end = False
         else:
-            self.start = None
-            self.end = None # note that we are single-linked
             # Convert the incoming list into a single-linked list
             prev_command = None
             for command_org in commands:
@@ -43,10 +53,15 @@ class CSequence:
             command.prev = prev_command
             prev_command = command
         self.end = prev_command
+        return self
 
 
     def forward(self, forever=False):
-        """Iterate over the commands. If forever=True, keep returning None after the list is exhausted"""
+        """Iterate over the commands.
+        
+        Arguments:
+            - forever: If True, keep returning None after the list is exhausted
+        """
         command = self.start
         while command:
             yield command
@@ -66,6 +81,7 @@ class CSequence:
         
     
     def as_string(self):
+        """Return a string representation of the object"""
         return '.'.join([c.as_string() for c in self.forward()])
     
     
@@ -116,13 +132,39 @@ class CSequence:
 
     @classmethod
     def from_set(cls, cset):
-        """Dummy function to turn a command set into a command sequence; the order of commands is not guaranteed"""
+        """Turn a command set into a command sequence; the order of commands is not guaranteed
+
+        Arguments:
+            - cset: A CSet object
+        """
         return CSequence(list(cset.commands))
+    
+    
+    @classmethod
+    def order_set(cls, cset):
+        """Order a command set to honour command ordering, and return a sequence.
+
+        Arguments:
+            - cset: A CSet object
+        """
+        sequence = CSequence(list(cset.commands)).order_by_node().add_backlinks()
+        out = []
+        for command in sequence.forward():
+            if command.is_constructor():
+                out.append(command)
+        for command in sequence.backward():
+            if not command.is_constructor():
+                out.append(command)
+        return CSequence(out)
     
 
     @classmethod
     def is_set_canonical(cls, cset):
-        """Check whether a set of commands is canonical. This algorithm, apart from the ordering, is linear in the size of the set"""
+        """Check whether a set of commands is canonical. This algorithm, apart from the ordering, is linear in the size of the set
+        
+        Arguments:
+            - cset: A CSet object
+        """
         sequence = cls.from_set(cset).order_by_node().add_up_pointers()
         
         prev_node = None
@@ -139,8 +181,12 @@ class CSequence:
         return True
 
     
-    def get_canonical_set(self):
-        """Return the canonical command set extending this sequence. May discover some breaking sequences"""
+    def get_canonical_set(self, checks=False):
+        """Return the canonical command set extending this sequence.
+        
+        Arguments:
+            - checks: If True, perform some checks to discover if the sequence is breaking
+        """
         out = set()
         prev_command = None
         repl_before = None
@@ -153,8 +199,8 @@ class CSequence:
             
             if command.node.equals(prev_command.node):
                 
-                if not prev_command.after.equals(command.before):
-                    raise Exception("Input sequence is breaking #1")
+                if checks and not prev_command.after.equals(command.before):
+                    raise Exception("Input sequence is breaking: input/output value mismatch")
                 
             else:
                 
@@ -173,7 +219,7 @@ class CSequence:
 
         out = CSet(out)
         # If self is non-breaking, it is guaranteed that out is a canonical set.
-        if not self.__class__.is_set_canonical(out):
+        if checks and not self.__class__.is_set_canonical(out):
             raise Exception("Input sequence is breaking #2")
             
         return out
@@ -182,25 +228,38 @@ class CSequence:
 if __name__ == '__main__':
     
     # Test code
-    c1 =  Command(Node(['d1']),             Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D1'))
-    c2 =  Command(Node(['d1', 'd2']),       Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2'))
-    c2b = Command(Node(['d1', 'd2']),       Value(Value.T_EMPTY, 'e'), Value(Value.T_DIR, 'D2b'))
-    c2x = Command(Node(['d1', 'd2']),       Value(Value.T_DIR, 'D2'), Value(Value.T_DIR, 'D2b'))
-    c3 =  Command(Node(['d1', 'd2', 'f3']), Value(Value.T_EMPTY, 'e'), Value(Value.T_FILE, 'F'))
-    s =  CSequence([c1, c2, c2b, c3])
-    s2 = CSequence([c3, c2, c1, c2b])
-    s3 = CSequence([c3, c2, c1, c2x])
-    sc = CSequence([c1, c2b, c3])
+    n1 = Node(['d1'])
+    n2 = Node(['d1', 'd2'])
+    n3 = Node(['d1', 'd2', 'f3'])
     
+    ve = Value(Value.T_EMPTY, 'e')
+    vd = Value(Value.T_DIR, 'd')
+    vf1 = Value(Value.T_FILE, 'f1')
+    vf2 = Value(Value.T_FILE, 'f2')
+    
+    c1ed = Command(n1, ve, vd)
+    c2ed = Command(n2, ve, vd)
+    c3ef1 = Command(n3, ve, vf1)
+    c3ef2 = Command(n3, ve, vf2)
+    c3ff2 = Command(n3, vf1, vf2)
+    
+    s =  CSequence([c1ed, c2ed, c3ef1, c3ff2])
+    s2 = CSequence([c3ef1, c2ed, c1ed, c3ff2])
+    sc = CSequence([c1ed, c2ed, c3ef2]) # canonical
+    
+    # Test equals
     assert s.clone().equals(s.clone())
     assert not sc.clone().equals(s.clone())
+    # Test order_by_node
     assert s2.clone().order_by_node().equals(s.clone())
-    
-    assert CSequence.from_set(s3.clone().get_canonical_set()).order_by_node().equals(sc.clone())
-
-    assert CSequence.is_set_canonical(CSet({c1.clone(), c2.clone(), c3.clone()}))
-    assert not CSequence.is_set_canonical(CSet({c2.clone(), c2b.clone()}))
-    assert not CSequence.is_set_canonical(CSet({c1.clone(), c3.clone()}))
+    # Test get_canonical_set
+    assert CSequence.from_set(s.clone().get_canonical_set()).order_by_node().equals(sc.clone())
+    # Test is_set_canonical
+    assert CSequence.is_set_canonical(CSet({c1ed.clone(), c2ed.clone(), c3ef1.clone()}))
+    assert not CSequence.is_set_canonical(CSet({c3ef1.clone(), c3ff2.clone()}))
+    assert not CSequence.is_set_canonical(CSet({c1ed.clone(), c3ef1.clone()}))
+    # Test order_set
+    assert CSequence.order_set(CSet({c3ff2.clone(), c2ed.clone(), c1ed.clone(), c3ef1.clone()})).equals(s.clone())
 
     print("Tests done")
     
