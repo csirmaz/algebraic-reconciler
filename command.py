@@ -10,6 +10,8 @@ class Command:
         - next: an optional pointer to another command in a single-linked list
         - up: an optional up pointer to another command
         - order: an optional index used during ordering
+        - final: an optional Boolean flag used during constructing a merger
+        - delete_conflicts_down: an optional Boolean flag used during constructing a merger
     
     Usage:
         c = Command(node, before_value, after_value)
@@ -30,11 +32,15 @@ class Command:
         self.next = None
         self.up = None
         self.order = None
+        self.final = None
+        self.delete_conflicts_down = None
 
 
     def as_string(self):
         """Return a string representation of the object"""
-        return f"<{self.node.as_string()}, {self.before.as_string()}, {self.after.as_string()}>"
+        on = "\033[31;1m"
+        off = "\033[0m"
+        return f"{on}<{off}{self.node.as_string()}{on}|{off}{self.before.as_string()}{on}|{off}{self.after.as_string()}{on}>{off}"
 
 
     def clone(self):
@@ -71,4 +77,24 @@ class Command:
         """Whether this command forms a destructor pair with the next command, `other`"""
         return (self.is_destructor() and self.after.is_empty() and other.is_destructor() and other.before.is_dir() and other.node.is_parent_of(self.node))
 
+
+    def weak_conflict_with(self, other):
+        """Whether this command is in conflict with another command, by the weak definition"""
+        if self.equals(other):
+            raise Exception("conflicts_with() should not be called on equal commands")
+        if self.node.equals(other.node):
+            return True
+        
+        if self.node.is_ancestor_of(other.node):
+            ancestor = self
+            descendant = other
+        elif self.node.is_descendant_of(other.node):
+            ancestor = other
+            descendant = self
+        else:
+            return False
+
+        if (not ancestor.after.is_dir()) and (not descendant.after.is_empty()):
+            return True
+        return False
         

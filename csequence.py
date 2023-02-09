@@ -43,7 +43,7 @@ class CSequence:
 
     def clone(self):
         """Return a clone"""
-        return CSequence([c.clone() for c in self.forward()])
+        return CSequence([command.clone() for command in self.forward()])
     
 
     def add_backlinks(self):
@@ -113,6 +113,19 @@ class CSequence:
         return CSequence(commands)
 
 
+    def order_by_node_value(self):
+        """Return another sequence in which the commands are ordered by node and value. Equivalent commands are guaranteed to be next to each other"""
+        commands = list(self.forward()) # This implementation of heap_sort expects a list
+        def compare(a, b):
+            r = b.node.comp(a.node)
+            if r != 0: return r
+            r = b.before.comp(a.before)
+            if r != 0: return r
+            return b.after.comp(a.after)
+        heap_sort(commands, compare)
+        return CSequence(commands)
+
+
     def add_up_pointers(self):
         """Use on a lexicographically sorted sequence to add the up pointers to its commands"""
         prev_command = None
@@ -120,12 +133,12 @@ class CSequence:
             if prev_command is None:
                 command.up = None
             else:
-                up = prev_command
+                up_command = prev_command
                 while True:
-                    if up is None or up.node.is_ancestor_of(command.node):
-                        command.up = up
+                    if up_command is None or up_command.node.is_ancestor_of(command.node):
+                        command.up = up_command
                         break
-                    up = command.up
+                    up_command = up_command.up
             prev_command = command
         return self
         
@@ -138,7 +151,28 @@ class CSequence:
             - cset: A CSet object
         """
         return CSequence(list(cset.commands))
-    
+
+
+    @classmethod
+    def from_set_union(cls, command_sets):
+        """Turn the union of some command sets into a command sequence; the order of commands is not guaranteed
+
+        Arguments:
+            - command_sets: A list or set of CSet objects
+        """
+        # Create the union of the command sets by ordering all commands and filtering out the equal ones
+        all = []
+        for cset in command_sets:
+            all.extend(list(cset.commands))
+
+        union = []
+        prev_command = None
+        for command in CSequence(all).order_by_node_value().forward():
+            if prev_command is None or (not command.equals(prev_command)):
+                union.append(command)
+            prev_command = command
+        return CSequence(union)
+
     
     @classmethod
     def order_set(cls, cset):
@@ -225,6 +259,55 @@ class CSequence:
         return out
     
     
+    @classmethod
+    def get_greedy_merger(cls, command_sets, debug=False):
+        """Given a set of jointly refluent canonical command sets, generate a merger.
+
+        Arguments:
+            - command_sets: A list or set of CSet objects
+        """
+        
+        union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
+        
+        if debug: 
+            for cset in command_sets:
+                print(f"Input: {cset.as_string()}")
+            print(f"Union (ordered): {union.as_string()}")
+        
+        for command in union.forward():
+            command.final = False
+            command.delete_conflicts_down = False
+        
+        merger = []
+        delete_on_node = None
+        for command in union.forward():
+            if debug: print(f"Current command: {command.as_string()}   Del_node: {'None' if delete_on_node is None else delete_on_node.as_string()}   Up: {'None' if command.up is None else command.up.as_string()}")
+            if delete_on_node is not None and command.node.equals(delete_on_node):
+                if debug: print("Deleted by node")
+                continue
+            
+            if command.up is not None and command.up.delete_conflicts_down:
+                if debug: print("Carrying down delete_conflicts_down")
+                command.delete_conflicts_down = True
+                if not command.after.is_empty():
+                    # delete_conflicts_down is only set if a command on an ancestor node creates a non-directory value
+                    # and so we are in conflict by the weak definition
+                    if debug: print("Deleted by delete_conflicts_down")
+                    continue
+            
+            # We are not in conflict, and so "final"
+            if debug: print("Command is final")
+            merger.append(command)
+            delete_on_node = command.node
+            if not command.after.is_dir():
+                # By the weak definition we will be in conflict with descendants creating a non-empty value
+                if debug: print("Marking with delete_conflicts_down")
+                command.delete_conflicts_down = True
+                
+        if debug: print(f"Merger: {CSequence(merger).as_string()}")
+        return CSequence(merger)
+
+    
 if __name__ == '__main__':
     
     # Test code
@@ -239,6 +322,7 @@ if __name__ == '__main__':
     
     c1ed = Command(n1, ve, vd)
     c2ed = Command(n2, ve, vd)
+    c2ef1 = Command(n2, ve, vf1)
     c3ef1 = Command(n3, ve, vf1)
     c3ef2 = Command(n3, ve, vf2)
     c3ff2 = Command(n3, vf1, vf2)
@@ -246,20 +330,50 @@ if __name__ == '__main__':
     s =  CSequence([c1ed, c2ed, c3ef1, c3ff2])
     s2 = CSequence([c3ef1, c2ed, c1ed, c3ff2])
     sc = CSequence([c1ed, c2ed, c3ef2]) # canonical
-    
+        
     # Test equals
     assert s.clone().equals(s.clone())
     assert not sc.clone().equals(s.clone())
+
     # Test order_by_node
     assert s2.clone().order_by_node().equals(s.clone())
+
     # Test get_canonical_set
     assert CSequence.from_set(s.clone().get_canonical_set()).order_by_node().equals(sc.clone())
+
     # Test is_set_canonical
     assert CSequence.is_set_canonical(CSet({c1ed.clone(), c2ed.clone(), c3ef1.clone()}))
     assert not CSequence.is_set_canonical(CSet({c3ef1.clone(), c3ff2.clone()}))
     assert not CSequence.is_set_canonical(CSet({c1ed.clone(), c3ef1.clone()}))
+
     # Test order_set
     assert CSequence.order_set(CSet({c3ff2.clone(), c2ed.clone(), c1ed.clone(), c3ef1.clone()})).equals(s.clone())
+
+    def seq_equals_set(seq, set_):
+        return seq.clone().order_by_node_value().equals(CSequence.from_set(set_.clone()).order_by_node_value())
+
+    # Test from_set_union
+    set1 = CSet({c1ed, c2ed, c3ef1})
+    set2 = CSet({c1ed, c2ed, c3ef2})
+    set3 = CSet({c1ed, c2ef1})
+    target_union = CSet({c1ed, c2ed, c3ef1, c3ef2})
+    assert seq_equals_set(CSequence.from_set_union([set1.clone(), set2.clone()]), target_union)
+    target_union = CSet({c2ed, c1ed, c3ef2, c2ef1})
+    assert seq_equals_set(CSequence.from_set_union([set3.clone(), set2.clone()]), target_union)
+    
+    # Test get_greedy_merger
+    target_merger1 = CSet({c1ed, c2ed, c3ef1})
+    target_merger2 = CSet({c1ed, c2ed, c3ef2})
+    merger = CSequence.get_greedy_merger([set1.clone(), set2.clone()])
+    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
+    merger = CSequence.get_greedy_merger([set2.clone(), set1.clone()])
+    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
+
+    target_merger1 = CSet({c1ed, c2ef1})
+    target_merger2 = CSet({c1ed, c2ed, c3ef2})
+    merger = CSequence.get_greedy_merger([set2.clone(), set3.clone()], debug=True)
+    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
+
 
     print("Tests done")
     

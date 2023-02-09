@@ -18,3 +18,8 @@ class CSet:
         """Return a string representation of the object"""
         s = ', '.join([c.as_string() for c in self.commands])
         return "{" + s + "}"
+    
+    
+    def clone(self):
+        """Return a clone"""
+        return CSet({command.clone() for command in self.commands})

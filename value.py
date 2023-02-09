@@ -79,6 +79,19 @@ class Value:
     def type_greater_eq(self, other):
         """Whether the current object is type-greater-or-equal than another Value object"""
         return (self.type_ >= other.type_)
+    
+    
+    def comp(self, other):
+        """Comparison function (returning -1,0,1) between two Value objects"""
+        if self.type_less(other):
+            return -1
+        if self.type_greater(other):
+            return 1
+        if self.contents < other.contents:
+            return -1
+        if self.contents > other.contents:
+            return 1
+        return 0
 
     
     def equals(self, other):
