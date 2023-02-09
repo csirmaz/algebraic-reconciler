@@ -10,8 +10,6 @@ class Command:
         - next: an optional pointer to another command in a single-linked list
         - up: an optional up pointer to another command
         - order: an optional index used during ordering
-        - final: an optional Boolean flag used during constructing a merger
-        - delete_conflicts_down: an optional Boolean flag used during constructing a merger
     
     Usage:
         c = Command(node, before_value, after_value)
@@ -32,8 +30,6 @@ class Command:
         self.next = None
         self.up = None
         self.order = None
-        self.final = None
-        self.delete_conflicts_down = None
 
 
     def as_string(self):

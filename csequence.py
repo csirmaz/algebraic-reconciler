@@ -273,10 +273,10 @@ class CSequence:
             for cset in command_sets:
                 print(f"Input: {cset.as_string()}")
             print(f"Union (ordered): {union.as_string()}")
-        
+
+        # for completeness only
         for command in union.forward():
-            command.final = False
-            command.delete_conflicts_down = False
+            command.node.delete_conflicts_down = False
         
         merger = []
         delete_on_node = None
@@ -286,9 +286,9 @@ class CSequence:
                 if debug: print("Deleted by node")
                 continue
             
-            if command.up is not None and command.up.delete_conflicts_down:
+            if command.up is not None and command.up.node.delete_conflicts_down:
                 if debug: print("Carrying down delete_conflicts_down")
-                command.delete_conflicts_down = True
+                command.node.delete_conflicts_down = True
                 if not command.after.is_empty():
                     # delete_conflicts_down is only set if a command on an ancestor node creates a non-directory value
                     # and so we are in conflict by the weak definition
@@ -302,7 +302,7 @@ class CSequence:
             if not command.after.is_dir():
                 # By the weak definition we will be in conflict with descendants creating a non-empty value
                 if debug: print("Marking with delete_conflicts_down")
-                command.delete_conflicts_down = True
+                command.node.delete_conflicts_down = True
                 
         if debug: print(f"Merger: {CSequence(merger).as_string()}")
         return CSequence(merger)
@@ -371,7 +371,7 @@ if __name__ == '__main__':
 
     target_merger1 = CSet({c1ed, c2ef1})
     target_merger2 = CSet({c1ed, c2ed, c3ef2})
-    merger = CSequence.get_greedy_merger([set2.clone(), set3.clone()], debug=True)
+    merger = CSequence.get_greedy_merger([set2.clone(), set3.clone()])
     assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
 
 
