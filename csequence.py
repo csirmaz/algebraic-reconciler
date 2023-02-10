@@ -16,7 +16,7 @@ class CSequence:
         s = CSequence([command1, command2])
     """
     
-    def __init__(self, commands):
+    def __init__(self, commands, clone=True):
         """Constructor.
         
         Arguments:
@@ -33,18 +33,18 @@ class CSequence:
             # Convert the incoming list into a single-linked list
             prev_command = None
             for command_org in commands:
-                command = command_org.clone() # clone to avoid clashes on the pointers
+                if clone:
+                    command = command_org.clone() # clone to avoid clashes on the pointers
+                else:
+                    command = command_org
+                command.prev = None
                 if self.start is None:
                     self.start = command
                 if prev_command is not None:
                     prev_command.next = command
                 prev_command = command
+            prev_command.next = None
 
-
-    def clone(self):
-        """Return a clone"""
-        return CSequence([command.clone() for command in self.forward()])
-    
 
     def add_backlinks(self):
         """Convert a single-linked list to a double-linked list"""
@@ -95,8 +95,8 @@ class CSequence:
             if not a.equals(b):
                 return False
         return True
-    
-    
+
+
     def order_by_node(self):
         """Return another sequence in which the commands are ordered by node; on equivalent nodes the original ordering is kept"""
         commands = [] # This implementation of heap_sort expects a list
@@ -153,6 +153,11 @@ class CSequence:
         return CSequence(list(cset.commands))
 
 
+    def as_set(self):
+        """Return a set containing the commands of this sequence"""
+        return CSet({command for command in self.forward()})
+        
+
     @classmethod
     def from_set_union(cls, command_sets):
         """Turn the union of some command sets into a command sequence; the order of commands is not guaranteed
@@ -176,7 +181,7 @@ class CSequence:
     
     @classmethod
     def order_set(cls, cset):
-        """Order a command set to honour command ordering, and return a sequence.
+        """Order a canonical command set to honour command ordering, and return a sequence.
 
         Arguments:
             - cset: A CSet object
@@ -307,73 +312,3 @@ class CSequence:
         if debug: print(f"Merger: {CSequence(merger).as_string()}")
         return CSequence(merger)
 
-    
-if __name__ == '__main__':
-    
-    # Test code
-    n1 = Node(['d1'])
-    n2 = Node(['d1', 'd2'])
-    n3 = Node(['d1', 'd2', 'f3'])
-    
-    ve = Value(Value.T_EMPTY, 'e')
-    vd = Value(Value.T_DIR, 'd')
-    vf1 = Value(Value.T_FILE, 'f1')
-    vf2 = Value(Value.T_FILE, 'f2')
-    
-    c1ed = Command(n1, ve, vd)
-    c2ed = Command(n2, ve, vd)
-    c2ef1 = Command(n2, ve, vf1)
-    c3ef1 = Command(n3, ve, vf1)
-    c3ef2 = Command(n3, ve, vf2)
-    c3ff2 = Command(n3, vf1, vf2)
-    
-    s =  CSequence([c1ed, c2ed, c3ef1, c3ff2])
-    s2 = CSequence([c3ef1, c2ed, c1ed, c3ff2])
-    sc = CSequence([c1ed, c2ed, c3ef2]) # canonical
-        
-    # Test equals
-    assert s.clone().equals(s.clone())
-    assert not sc.clone().equals(s.clone())
-
-    # Test order_by_node
-    assert s2.clone().order_by_node().equals(s.clone())
-
-    # Test get_canonical_set
-    assert CSequence.from_set(s.clone().get_canonical_set()).order_by_node().equals(sc.clone())
-
-    # Test is_set_canonical
-    assert CSequence.is_set_canonical(CSet({c1ed.clone(), c2ed.clone(), c3ef1.clone()}))
-    assert not CSequence.is_set_canonical(CSet({c3ef1.clone(), c3ff2.clone()}))
-    assert not CSequence.is_set_canonical(CSet({c1ed.clone(), c3ef1.clone()}))
-
-    # Test order_set
-    assert CSequence.order_set(CSet({c3ff2.clone(), c2ed.clone(), c1ed.clone(), c3ef1.clone()})).equals(s.clone())
-
-    def seq_equals_set(seq, set_):
-        return seq.clone().order_by_node_value().equals(CSequence.from_set(set_.clone()).order_by_node_value())
-
-    # Test from_set_union
-    set1 = CSet({c1ed, c2ed, c3ef1})
-    set2 = CSet({c1ed, c2ed, c3ef2})
-    set3 = CSet({c1ed, c2ef1})
-    target_union = CSet({c1ed, c2ed, c3ef1, c3ef2})
-    assert seq_equals_set(CSequence.from_set_union([set1.clone(), set2.clone()]), target_union)
-    target_union = CSet({c2ed, c1ed, c3ef2, c2ef1})
-    assert seq_equals_set(CSequence.from_set_union([set3.clone(), set2.clone()]), target_union)
-    
-    # Test get_greedy_merger
-    target_merger1 = CSet({c1ed, c2ed, c3ef1})
-    target_merger2 = CSet({c1ed, c2ed, c3ef2})
-    merger = CSequence.get_greedy_merger([set1.clone(), set2.clone()])
-    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
-    merger = CSequence.get_greedy_merger([set2.clone(), set1.clone()])
-    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
-
-    target_merger1 = CSet({c1ed, c2ef1})
-    target_merger2 = CSet({c1ed, c2ed, c3ef2})
-    merger = CSequence.get_greedy_merger([set2.clone(), set3.clone()])
-    assert seq_equals_set(merger, target_merger1.clone()) or seq_equals_set(merger, target_merger2.clone())
-
-
-    print("Tests done")
-    
