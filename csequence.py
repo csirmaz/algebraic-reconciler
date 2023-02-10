@@ -291,6 +291,10 @@ class CSequence:
                 if debug: print("Deleted by node")
                 continue
             
+            # Note: delete_conflicts_down is set on the Node object so we would find it even if the up pointer points
+            # to another command on the same node. This relies on the fact that each path is represented by a single
+            # Node object only, guaranteed by the Session.
+            
             if command.up is not None and command.up.node.delete_conflicts_down:
                 if debug: print("Carrying down delete_conflicts_down")
                 command.node.delete_conflicts_down = True
