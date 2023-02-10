@@ -60,20 +60,11 @@ class Node:
 
     def comp(self, other):
         """Comparison function (returning -1,0,1) following lexicographic order"""
-        # The </== operators between lists should do the same, but we make the logic explicit here
-        i = 0
-        while True:
-            if i >= len(self.path):
-                if i >= len(other.path):
-                    return 0
-                return -1 # self.path is shorter and a prefix
-            if i >= len(other.path):
-                return 1 # other.path is shorter and a prefix
-            if self.path[i] < other.path[i]:
-                return -1
-            if self.path[i] > other.path[i]:
-                return 1
-            i += 1
+        if self.path == other.path:
+            return 0
+        if self.path < other.path:
+            return -1
+        return 1
 
             
     def is_less(self, other):

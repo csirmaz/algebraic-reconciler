@@ -108,31 +108,32 @@ if __name__ == '__main__':
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>;
                    t=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>.<d1/d2/f3|E|Ff2>""")
-    assert CSequence.from_set_union([s.a.as_set(), s.b.as_set()]).as_set().slow_equals(s.t.as_set())
+    assert CSequence.from_set_union([s.a, s.b]).as_set().slow_equals(s.t.as_set())
 
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2|E|Ff1>;
                    t=<d1|E|D>.<d1/d2|E|D>.<d1/d2|E|Ff1>.<d1/d2/f3|E|Ff1>""")
-    assert CSequence.from_set_union([s.a.as_set(), s.b.as_set()]).as_set().slow_equals(s.t.as_set())
+    assert CSequence.from_set_union([s.a, s.b]).as_set().slow_equals(s.t.as_set())
     
     # Test get_greedy_merger
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>;
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>""")
-    merger = CSequence.get_greedy_merger([s.a.as_set(), s.b.as_set()]).as_set()
+    merger = CSequence.get_greedy_merger([s.a, s.b]).as_set()
     assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
     
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>;
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>""")
-    merger = CSequence.get_greedy_merger([s.b.as_set(), s.a.as_set()]).as_set()
+    merger = CSequence.get_greedy_merger([s.b, s.a]).as_set()
     assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
 
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|Ff1>;
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|Ff1>""")
-    merger = CSequence.get_greedy_merger([s.a.as_set(), s.b.as_set()]).as_set()
+    merger = CSequence.get_greedy_merger([s.a, s.b]).as_set()
     assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
+

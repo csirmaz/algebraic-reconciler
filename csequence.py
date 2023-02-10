@@ -163,12 +163,17 @@ class CSequence:
         """Turn the union of some command sets into a command sequence; the order of commands is not guaranteed
 
         Arguments:
-            - command_sets: A list or set of CSet objects
+            - command_sets: A list or set of CSet objects or CSequence objects
         """
         # Create the union of the command sets by ordering all commands and filtering out the equal ones
         all = []
         for cset in command_sets:
-            all.extend(list(cset.commands))
+            if isinstance(cset, CSet):
+                all.extend(list(cset.commands))
+            elif isinstance(cset, CSequence):
+                all.extend([c for c in cset.forward()])
+            else:
+                raise Exception("Unknown object received")
 
         union = []
         prev_command = None
@@ -269,7 +274,7 @@ class CSequence:
         """Given a set of jointly refluent canonical command sets, generate a merger.
 
         Arguments:
-            - command_sets: A list or set of CSet objects
+            - command_sets: A list or set of CSet objects or CSequence objects
         """
         
         union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
