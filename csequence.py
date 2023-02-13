@@ -373,7 +373,7 @@ class CSequence:
                 
                 # Condition c)
                 # - command.up is always filled in if there's a command above us
-                # - command.up is the on the parent node if there's a command on the parent node
+                # - command.up is on the parent node if there's a command on the parent node
                 # - if no "up" points to a given node, we're not checking it, but that is fine
                 #   as the index needs to be a subset on descendants and the index is empty on the descendants
                 # - we know all input (before) values match, so it's enough to check one command
