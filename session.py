@@ -136,4 +136,37 @@ if __name__ == '__main__':
                    t2=<d1|E|D>.<d1/d2|E|Ff1>""")
     merger = CSequence.get_greedy_merger([s.a, s.b]).as_set()
     assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
+    
+    # Test check_refluent
+    s = Session("""a=<1|D|Ff1>;
+                   b=<1/2|E|Ff2>""")
+    assert CSequence.check_refluent([s.a, s.b])
+    
+    s = Session("""a=<1|Ff1|Ff2>;
+                   b=<1/2|E|Ff3>""")
+    assert not CSequence.check_refluent([s.a, s.b])    
 
+    s = Session("""a=<1/2|D|E>.<1|D|E>;
+                   b=<1/2/3|E|D>;
+                   c=<1/2|D|Ff2>.<0|E|D>;
+                   d=<1/2/3|E|D>.<1/2/3/4|E|Ff3>;
+                   e=<1/2/3|E|D>.<1/2/3/4b|E|Ff4>""")
+    assert CSequence.check_refluent([s.a, s.b, s.c, s.d, s.e])
+
+    s = Session("""a=<1/2|D|E>.<1|D|E>;
+                   b=<1/2/3|E|D>;
+                   c=<1/2|D|Ff2>.<0|E|D>;
+                   d=<1/2/3|F|D>.<1/2/3/4|E|Ff3>;
+                   e=<1/2/3|E|D>.<1/2/3/4b|E|Ff4>""")
+    assert not CSequence.check_refluent([s.a, s.b, s.c, s.d, s.e]) # Wrong input value in s.d[0]
+
+    s = Session("""a=<1/2|F|E>.<1|D|E>;
+                   b=<1/2/3|E|D>;
+                   c=<1/2|F|Ff2>.<0|E|D>;
+                   d=<1/2/3|E|D>.<1/2/3/4|E|Ff3>;
+                   e=<1/2/3|E|D>.<1/2/3/4b|E|Ff4>""")
+    assert not CSequence.check_refluent([s.a, s.b, s.c, s.d, s.e]) # s.a, s.c assume F at 1/2; others assume D
+
+    s = Session("""a=<1/2|D|E>.<1|D|E>;
+                   b=<1/2/3/4/5/6|E|D>""")
+    assert CSequence.check_refluent([s.a, s.b])

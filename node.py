@@ -5,6 +5,7 @@ class Node:
     Properties:
         - path: a list of strings
         - delete_conflicts_down: an optional Boolean flag used during constructing a merger
+        - index: an optional bitmap
 
     Usage:
         paths are lists of names (strings), e.g.
@@ -20,6 +21,7 @@ class Node:
         assert isinstance(path, list)
         self.path = path
         self.delete_conflicts_down = None
+        self.index = None
 
 
     def as_string(self):

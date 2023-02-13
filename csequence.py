@@ -275,6 +275,7 @@ class CSequence:
 
         Arguments:
             - command_sets: A list or set of CSet objects or CSequence objects
+            - debug: {bool} Whether to print debug information
         """
         
         union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
@@ -320,4 +321,77 @@ class CSequence:
                 
         if debug: print(f"Merger: {CSequence(merger).as_string()}")
         return CSequence(merger)
+    
+    
+    @classmethod
+    def check_refluent(cls, command_sets, debug=False):
+        """Given a set of canonical command sets, determine if they are refluent.
+        
+        Arguments:
+            - command_sets: A list or set of CSet objects or CSequence objects
+            - debug: {bool} Whether to print debug information
+        """
 
+        # Fill in the index bitmaps
+        def set_bit(node, bit):
+            v = 1 << bit
+            if node.index is None:
+                node.index = v
+            else:
+                node.index |= v
+        
+        for i, cset in enumerate(command_sets):
+            if isinstance(cset, CSet):
+                for command in cset.commands:
+                    set_bit(command.node, i)
+            elif isinstance(cset, CSequence):
+                for command in cset.forward():
+                    set_bit(command.node, i)
+            else:
+                raise Exception("Unknown object received")
+            
+        union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
+       
+        prev_command = None
+        for command in union.forward():
+            
+            if prev_command is not None and prev_command.node.equals(command.node):
+                # Condition a)
+                if not prev_command.before.equals(command.before):  
+                    if debug: print(f"Commands {command.as_string()} and {prev_command.as_string()} have different input values")
+                    return False
+                
+            if command.up is not None:
+                
+                # Condition b)
+                # - if we have m above n so that there's a command on both, then the "up" pointer is filled in
+                #   for commands on n
+                # - if as we require, there are commands on the parent of n, then the up pointers must point there
+                if not command.up.node.is_parent_of(command.node):
+                    if debug: print(f"Up pointer at {command.as_string()} does not point to a parent")
+                    return False
+                
+                # Condition c)
+                # - command.up is always filled in if there's a command above us
+                # - command.up is the on the parent node if there's a command on the parent node
+                # - if no "up" points to a given node, we're not checking it, but that is fine
+                #   as the index needs to be a subset on descendants and the index is empty on the descendants
+                # - we know all input (before) values match, so it's enough to check one command
+                if command.up.node.is_parent_of(command.node) and not command.up.before.is_dir():
+                    if (command.node.index & command.up.node.index) != command.node.index:
+                        if debug: print(f"Index at {command.as_string()}: {command.node.index} not a subset of index at {command.up.as_string()}: {command.up.node.index}")
+                        return False
+                
+            # Condition d)
+            if not command.before.is_empty():
+                if not (
+                    command.up is None # no commands above us so index set empty
+                    or
+                    (command.up.node.index & command.node.index) == command.up.node.index
+                ):
+                    if debug: print(f"Index at {command.as_string()}: {command.node.index} not a superset of index at {command.up.as_string()}: {command.up.node.index}")
+                    return False
+        
+            prev_command = command
+
+        return True
