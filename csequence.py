@@ -80,8 +80,16 @@ class CSequence:
             command = command.prev
         
     
-    def as_string(self):
-        """Return a string representation of the object"""
+    def as_string(self, with_up=False):
+        """Return a string representation of the object
+        
+        Arguments:
+            - with_up: {bool} Display information about the up pointers
+        """
+        if with_up:
+            return "\n".join([
+                    f"{id(c)}{c.as_string()}^{'x' if c.up is None else id(c.up)}"
+                for c in self.forward()])                
         return '.'.join([c.as_string() for c in self.forward()])
     
     
@@ -127,7 +135,9 @@ class CSequence:
 
 
     def add_up_pointers(self):
-        """Use on a lexicographically sorted sequence to add the up pointers to its commands"""
+        """Use on a lexicographically sorted sequence to add the up pointers to its commands.
+        Note that in this implementation the pointers are between commands, not nodes.
+        """
         prev_command = None
         for command in self.forward():
             if prev_command is None:
@@ -351,6 +361,7 @@ class CSequence:
                 raise Exception("Unknown object received")
             
         union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
+        if debug: print(union.as_string(with_up=True))
        
         prev_command = None
         for command in union.forward():

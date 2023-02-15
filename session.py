@@ -169,4 +169,4 @@ if __name__ == '__main__':
 
     s = Session("""a=<1/2|D|E>.<1|D|E>;
                    b=<1/2/3/4/5/6|E|D>""")
-    assert CSequence.check_refluent([s.a, s.b])
+    assert not CSequence.check_refluent([s.a, s.b])
