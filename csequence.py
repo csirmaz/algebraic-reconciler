@@ -236,7 +236,7 @@ class CSequence:
 
     
     def get_canonical_set(self, checks=False):
-        """Return the canonical command set extending this sequence.
+        """Return the canonical command set that is the semantic extension of this sequence.
         
         Arguments:
             - checks: If True, perform some checks to discover if the sequence is breaking
@@ -335,7 +335,7 @@ class CSequence:
     
     @classmethod
     def check_refluent(cls, command_sets, debug=False):
-        """Given a set of canonical command sets, determine if they are refluent.
+        """Given a set of canonical command sets, determine if they are jointly refluent.
         
         Arguments:
             - command_sets: A list or set of CSet objects or CSequence objects

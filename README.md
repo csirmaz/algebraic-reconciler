@@ -30,6 +30,8 @@ The string representation is as follows. For examples, see below.
 
 ### Algorithm 1 (Adding up pointers)
 
+Given a lexicographically sorted (see `order_by_node()`) sequence, add the "up" pointers to its commands.
+
 ```python
 from session import Session
 s = Session("a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>")
@@ -37,6 +39,8 @@ s.a.add_up_pointers() # defined in csequence.py
 ```
 
 ### Algorithm 2 (Determining if a command set is canonical)
+
+Check whether a set of commands is canonical.
 
 ```python
 from session import Session
@@ -47,6 +51,8 @@ print(CSequence.is_set_canonical(s.a.as_set()))
 
 ### Algorithm 3 (Ordering a canonical set)
 
+Order a canonical command set to honour command ordering, and return a sequence.
+
 ```python
 from session import Session
 from csequence import CSequence
@@ -56,6 +62,8 @@ print(CSequence.order_set(s.a.as_set()).as_string())
 
 ### Algorithm 4 (Command sequence to canonical set)
 
+Return the canonical command set that is the semantic extension of this sequence.
+
 ```python
 from session import Session
 s = Session("a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>.<d1/d2/f3|Ff1|Ff2>")
@@ -63,6 +71,8 @@ print(s.a.get_canonical_set().as_string()) # defined in csequence.py
 ```
 
 ### Algorithm 5 (Generating a merger - greedy)
+
+Given a set of jointly refluent canonical command sets (or sequences), generate a merger.
 
 ```python
 from session import Session
@@ -75,6 +85,8 @@ print(merger.as_string())
 
 ### Algorithm 6 (Checking if canonical sets are refluent)
 
+Given a set of canonical command sets, determine if they are jointly refluent.
+
 ```python
 from session import Session
 from csequence import CSequence
@@ -85,4 +97,6 @@ s = Session("""a=<1/2|D|E>.<1|D|E>;
                e=<1/2/3|E|D>.<1/2/3/4b|E|Ff4>""")
 print(CSequence.check_refluent([s.a, s.b, s.c, s.d, s.e]))
 ```
+
+### Algorithm 7
 
