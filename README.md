@@ -1,4 +1,4 @@
-# algebraic-reconciler
+# How to Syncronize Many Filesystems in Near Linear Time
 
 ## Introduction
 
