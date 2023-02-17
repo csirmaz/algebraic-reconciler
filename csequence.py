@@ -288,7 +288,8 @@ class CSequence:
             - debug: {bool} Whether to print debug information
         """
         
-        union = cls.from_set_union(command_sets).order_by_node().add_up_pointers()
+        # from_set_union() applies order_by_node_value()
+        union = cls.from_set_union(command_sets).add_up_pointers()
         
         if debug: 
             for cset in command_sets:
@@ -406,3 +407,228 @@ class CSequence:
             prev_command = command
 
         return True
+
+
+    @classmethod
+    def get_any_merger(cls, command_sets, decisions=None, debug=False):
+        """Given a set of jointly refluent canonical command sets, generate a merger.
+        Suitable to produce all possible mergers; see Sequence.get_all_mergers().
+
+        Arguments:
+            - command_sets: A list or set of CSet objects or CSequence objects
+            - decisions: Optional; a list of decisions a previous run of get_any_merger() returned
+            - debug: {bool} Whether to print debug information
+            
+        Returns:
+            (list of decisions, merger) or (None, None) if no more mergers can be generated
+        """
+        
+        # The logic around storing decisions is not part of the algorithm, but makes it possible to generate all mergers
+        # in a deterministic fashion
+        
+        if debug: print("---- get_any_merger starts ----")
+        
+        # First increment the decisions in the decisions list
+        if decisions is None:
+            decisions = []
+        else:
+            for i in reversed(range(len(decisions))):
+                dec = decisions[i]
+                if dec['current_decision'] < dec['num_options'] - 1:
+                    dec['current_decision'] += 1
+                    break
+                if i == 0:
+                    # No more mergers to generate
+                    return (None, None)
+                decisions.pop(i)
+        
+        decision_index = 0
+        def make_decision(commands):
+            """Choose a command from a list of commands.
+            Retrieve the decision to be made from the decisions list or populate it.
+            Note that decisions are purely identified by the order in which they are requested.
+            """
+            nonlocal decision_index
+            if len(decisions) <= decision_index:
+                assert len(decisions) == decision_index
+                decisions.append({'current_decision': 0, 'num_options': len(commands), 'comment': " vs ".join([c.as_string() for c in commands])})
+                decision_index += 1
+                return commands[0]
+            
+            assert decisions[decision_index]['num_options'] == len(commands)
+            d = decisions[decision_index]['current_decision']
+            decision_index += 1
+            return commands[d]
+        
+        def show_flags(commands):
+            """For debugging; show the flags set on nodes"""
+            print("Flags set")
+            prev_command = None
+            for command in commands.forward():
+                if prev_command is None or not prev_command.node.equals(command.node):
+                    print(f"  {command.node.as_string():<40}  "
+                     + (" des^" if command.node.delete_destructors_up else "     ")
+                     + (" cre*" if command.node.delete_creators_down else "     ")
+                     + (" cre!" if command.node.delete_creators_strictly_down else "     ")
+                    )
+                prev_command = command
+        
+        # The algorithm proper starts here
+
+        # from_set_union() applies order_by_node_value()        
+        union = cls.from_set_union(command_sets).add_up_pointers().add_backlinks()
+
+        def process_flags(command):
+            """Process flags in a top-down pass and mark the command for deletion"""
+            if command.up and command.up.node.delete_creators_strictly_down:
+                command.node.delete_creators_down = True
+                
+            if command.up and command.up.node.delete_creators_down:
+                command.node.delete_creators_down = True
+            
+            # delete_creators_down marks commands for deletion whose output is not empty,
+            # that is, constructors, edits and D>F destructors
+            if command.node.delete_creators_down and (not command.after.is_empty()):
+                command.delete = True
+                
+            if command.node.delete_destructors_up and command.is_destructor():
+                command.delete = True
+
+        def mark_delete_destructors_up(command):
+            """Mark the node of this command and all nodes above with delete_destructors_up"""
+            while True:
+                if command.node.delete_destructors_up:
+                    break
+                command.node.delete_destructors_up = True
+                if command.up:
+                    command = command.up
+                    continue
+                break            
+        
+        # (1) Top-down pass focusing on
+        # - destructors and constructors in the same component 
+        # - commands with files as inputs in any component
+        # - no-destructor components
+        if debug: print("Pass 1")
+
+        def process_node_commands_1(commands):
+            """Process a list of commands on the same node during the 1st pass"""
+            if len(commands) == 1:
+                return
+            # If we have multiple commands (they are different as the union uniquifies), we have a conflict
+            # Check for commands on a file
+            # Because the input sets are refluent, the before (input) value of all commands here is the same
+            if commands[0].before.is_file():
+                # Decide which command to keep now - we may have a destructor F>E, constructor F>D or a number of edits F>F?
+                keep = make_decision(commands)
+                if keep.is_destructor(): # must be F>E
+                    keep.node.delete_creators_down = True
+                elif keep.is_constructor(): # must be F>D
+                    mark_delete_destructors_up(keep)
+                else: # edit, F>F
+                    mark_delete_destructors_up(keep)
+                    keep.node.delete_creators_strictly_down = True # don't delete the current command though
+                # Mark other commands on this node for deletion
+                for command in commands:
+                    if not command.equals(keep):
+                        command.delete = True
+                        
+            if commands[0].before.is_empty():
+                # Decide which command to keep - we may have constructors E>F? or E>D
+                keep = make_decision(commands)
+                if keep.after.is_file(): # we cannot have non-empty values below
+                    keep.node.delete_creators_strictly_down = True # don't delete the current command though
+                # Mark other commands on this node for deletion
+                for command in commands:
+                    if not command.equals(keep):
+                        command.delete = True
+
+        prev_command = None
+        node_commands = None
+        for command in union.forward():
+
+            # We process the flags here so we don't consider conflicts in subtrees already marked for deletion
+            process_flags(command)
+
+            if command.delete:
+                continue
+
+            if prev_command and prev_command.node.equals(command.node):
+                node_commands.append(command)
+            else:
+                if node_commands:
+                    process_node_commands_1(node_commands)                
+                node_commands = [command]
+
+            # Look for constructor / destructor on related nodes
+            # Since the input sets are canonical, command.up, if exists, points to a command on the parent node
+            if command.up and command.before.is_empty() and command.is_constructor() and command.up.before.is_dir() and command.up.is_destructor():
+                keep = make_decision([command.up, command])
+                if keep.equals(command.up): # we keep the destructor on the parent
+                    command.delete = True
+                    command.node.delete_creators_down = True
+                else:
+                    mark_delete_destructors_up(command)
+
+            prev_command = command
+        process_node_commands_1(node_commands)    
+        
+        # (2) Bottom-up pass focusing on 
+        # - conflicts between D>F and D>E commands in no-constructor components
+        # Note: commands with file inputs are handled above
+        if debug: print("Pass 2")
+
+        def process_node_commands_2(commands):
+            """Process a list of commands on the same node during the 2nd pass"""
+            if len(commands) == 1:
+                return
+            # If we have multiple commands (they are different as the union uniquifies), we have a conflict
+            # Because the input sets are refluent, the before (input) value of all commands here is the same
+            if commands[0].before.is_dir():
+                # Decide which command to keep - we may have destructors D>F? and D>E
+                keep = make_decision(commands)
+                if keep.after.is_file(): # we cannot destruct directories above
+                    if keep.up:
+                        mark_delete_destructors_up(keep.up)
+                # Mark other commands on this node for deletion
+                for command in commands:
+                    if not command.equals(keep):
+                        command.delete = True
+
+        prev_command = None
+        node_commands = None
+        for command in union.backward():
+
+            # We process the flags here so we don't consider conflicts in subtrees already marked for deletion
+            process_flags(command)
+
+            if command.delete:
+                continue
+
+            if prev_command and prev_command.node.equals(command.node):
+                node_commands.append(command)
+            else:
+                if node_commands:
+                    process_node_commands_2(node_commands)
+                node_commands = [command]
+
+            prev_command = command
+        process_node_commands_2(node_commands)    
+        
+        # (3) Finally, collect the remaining commands
+        
+        merger = []
+        for command in union.forward():
+            process_flags(command)
+            if command.delete:
+                continue
+            merger.append(command)
+        
+        if debug:
+            show_flags(union)
+            # Display the decisions
+            print("Decisions made")
+            for i, d in enumerate(decisions):
+                print(f"  #{i} {d['current_decision']} of {d['num_options']} for {d['comment']}")
+        
+        return (decisions, CSequence(merger))

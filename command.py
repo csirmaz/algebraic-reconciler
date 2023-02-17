@@ -10,6 +10,7 @@ class Command:
         - next: an optional pointer to another command in a single-linked list
         - up: an optional up pointer to another command
         - order: an optional index used during ordering
+        - delete: optional bool flag used by get_any_merger(): whether the current command is discarded
     
     Usage:
         c = Command(node, before_value, after_value)
@@ -30,12 +31,17 @@ class Command:
         self.next = None
         self.up = None
         self.order = None
+        self.delete = None
 
 
-    def as_string(self):
+    def as_string(self, color=False):
         """Return a string representation of the object"""
-        on = "\033[31;1m"
-        off = "\033[0m"
+        if color:
+            on = "\033[31;1m"
+            off = "\033[0m"
+        else:
+            on = ''
+            off = ''
         return f"{on}<{off}{self.node.as_string()}{on}|{off}{self.before.as_string()}{on}|{off}{self.after.as_string()}{on}>{off}"
 
 

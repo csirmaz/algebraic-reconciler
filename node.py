@@ -6,6 +6,9 @@ class Node:
         - path: a list of strings
         - delete_conflicts_down: an optional Boolean flag used during constructing a merger
         - index: an optional bitmap
+        - delete_creators_strictly_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output below this node
+        - delete_creators_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output on this node and below
+        - delete_destructors_up: optional bool flag used by get_any_merger(): whether to discard destructors on this node (and above)
 
     Usage:
         paths are lists of names (strings), e.g.
@@ -22,6 +25,9 @@ class Node:
         self.path = path
         self.delete_conflicts_down = None
         self.index = None
+        self.delete_creators_strictly_down = None
+        self.delete_creators_down = None
+        self.delete_destructors_up = None
 
 
     def as_string(self):
