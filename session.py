@@ -80,6 +80,8 @@ class Session:
 def get_all_mergers(session_def, debug=False):
     """Check a set of sequences and produce all possible mergers"""
     
+    if debug: print(f"========= get_all_mergers starting ===========\nSession specification:\n{session_def}\n")
+    
     s = Session(session_def, use_list=True)
     for seq in s.sequences:
         assert CSequence.is_set_canonical(seq.as_set())
@@ -88,14 +90,18 @@ def get_all_mergers(session_def, debug=False):
     assert CSequence.check_refluent(s.sequences)
     
     decisions = None
+    i = 0
     while True:
+        if debug: print(f"---- Run #{i} ----")
         s = Session(session_def, use_list=True) # reset flags, etc.
         decisions, merger = CSequence.get_any_merger(s.sequences, decisions=decisions, debug=debug)
         if decisions is None:
+            if debug: print(f"No more mergers\n========== Generated {i} mergers ===========")
             break
         print("Merger:")
         print(merger.as_string())
-    
+        i += 1
+
 
 if __name__ == '__main__':
     
@@ -204,6 +210,20 @@ if __name__ == '__main__':
     assert not CSequence.check_refluent([s.a, s.b])
     
     # Test get_all_mergers
+    sessiondef = """a=<1/2/3|D|E>.<1/2|D|E>;
+                    b=<1/2/3|D|E>.<1/2|D|Fa>;
+                    c=<1/2/3/4|E|D>.<1/2/3/4/5|E|Fb>;
+                    d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
+                    e=<1/2/3/4b|E|Fc>;
+                    f=<1/2/3/4c|E|D>"""
+    get_all_mergers(sessiondef, debug=True)
+
+    sessiondef = """g=<6/7/8|F|E>.<6/7|D|E>;
+                    h=<6/7/8|F|Fd>;
+                    i=<6/7/8|F|D>.<6/7/8/9|E|D>;
+                    j=<6/7/8b|E|Fe>"""
+    get_all_mergers(sessiondef, debug=True)
+
     sessiondef = """a=<1/2/3|D|E>.<1/2|D|E>;
                     b=<1/2/3|D|E>.<1/2|D|Fa>;
                     c=<1/2/3/4|E|D>.<1/2/3/4/5|E|Fb>;

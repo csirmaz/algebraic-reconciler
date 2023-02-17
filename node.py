@@ -9,6 +9,7 @@ class Node:
         - delete_creators_strictly_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output below this node
         - delete_creators_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output on this node and below
         - delete_destructors_up: optional bool flag used by get_any_merger(): whether to discard destructors on this node (and above)
+        - has_destructor: optional bool flag used by get_any_merger(): whether there is a destructor command on this node
 
     Usage:
         paths are lists of names (strings), e.g.
@@ -28,6 +29,7 @@ class Node:
         self.delete_creators_strictly_down = None
         self.delete_creators_down = None
         self.delete_destructors_up = None
+        self.has_destructor = None
 
 
     def as_string(self):

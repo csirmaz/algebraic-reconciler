@@ -467,6 +467,7 @@ class CSequence:
             for command in commands.forward():
                 if prev_command is None or not prev_command.node.equals(command.node):
                     print(f"  {command.node.as_string():<40}  "
+                     + (" +des" if command.node.has_destructor else "     ")
                      + (" des^" if command.node.delete_destructors_up else "     ")
                      + (" cre*" if command.node.delete_creators_down else "     ")
                      + (" cre!" if command.node.delete_creators_strictly_down else "     ")
@@ -477,6 +478,18 @@ class CSequence:
 
         # from_set_union() applies order_by_node_value()        
         union = cls.from_set_union(command_sets).add_up_pointers().add_backlinks()
+        
+        # (0) Initialise flags and record if a node has a destructor command
+        for command in union.forward():
+            command.delete = False
+            node = command.node
+            if node.has_destructor is None: # has not been initialised
+                node.has_destructor = False
+                node.delete_creators_down = False
+                node.delete_creators_strictly_down = False
+                node.delete_destructors_up = False
+            if command.is_destructor():
+                node.has_destructor = True                
 
         def process_flags(command):
             """Process flags in a top-down pass and mark the command for deletion"""
@@ -505,6 +518,9 @@ class CSequence:
                 if command.node.delete_destructors_up:
                     break
                 command.node.delete_destructors_up = True
+                # We want to action adding this flag, at least as far as setting this flag goes
+                # to avoid seeing conflicts where in fact an option has already been deleted
+                command.node.has_destructor = False
                 if command.up:
                     command = command.up
                     continue
@@ -513,7 +529,6 @@ class CSequence:
         # (1) Top-down pass focusing on
         # - destructors and constructors in the same component 
         # - commands with files as inputs in any component
-        # - no-destructor components
         if debug: print("Pass 1")
 
         def process_node_commands_1(commands):
@@ -530,12 +545,14 @@ class CSequence:
                 if keep.is_destructor(): # must be F>E
                     keep.node.delete_creators_down = True
                     if debug: print(f"Mark {keep.as_string()} with delete_creators_down")
+                    # We don't need to action this flag now (e.g. mark commands as deleted) as we're in a top-down pass
                 elif keep.is_constructor(): # must be F>D
                     mark_delete_destructors_up(keep)
                 else: # edit, F>F
                     mark_delete_destructors_up(keep)
                     keep.node.delete_creators_strictly_down = True # don't delete the current command though
                     if debug: print(f"Mark {keep.as_string()} with delete_creators_strictly_down")
+                    # We don't need to action this flag now (e.g. mark commands as deleted) as we're in a top-down pass
                 # Mark other commands on this node for deletion
                 for command in commands:
                     if not command.equals(keep):
@@ -560,13 +577,16 @@ class CSequence:
 
             # Look for constructor / destructor on related nodes
             # Since the input sets are canonical, command.up, if exists, points to a command on the parent node
-            if command.up and command.before.is_empty() and command.is_constructor() and command.up.before.is_dir() and command.up.is_destructor():
+            # But note that command.up may not point to a destructor command present on command.up.node, so we use
+            # command.up.node.has_destructor, which also reflects deletions
+            if command.up and command.before.is_empty() and command.is_constructor() and command.up.before.is_dir() and command.up.node.has_destructor:
                 keep = make_decision([command.up, command])
                 if debug: print(f"Found destructor-constructor conflict on {command.up.as_string()} and {command.as_string()}; keeping {keep.as_string()}")
                 if keep.equals(command.up): # we keep the destructor on the parent
                     command.delete = True
                     command.up.node.delete_creators_down = True
                     if debug: print(f"Mark {command.up.as_string()} with delete_creators_down")
+                    # We don't need to action this flag now (e.g. mark commands as deleted) as we're in a top-down pass
                 else:
                     mark_delete_destructors_up(command)
 
@@ -580,7 +600,7 @@ class CSequence:
         if debug: print("Pass 2")
 
         def process_node_commands_2(commands):
-            """Process a list of commands on the same node during the 1st pass"""
+            """Process a list of commands on the same node during the 2nd pass"""
             if len(commands) == 1:
                 return
             # If we have multiple commands (they are different as the union uniquifies), we have a conflict
@@ -592,6 +612,7 @@ class CSequence:
                 if keep.after.is_file(): # we cannot have non-empty values below
                     keep.node.delete_creators_strictly_down = True # don't delete the current command though
                     if debug: print(f"Mark {keep.as_string()} with delete_creators_strictly_down")
+                    # We don't need to action this flag now (e.g. mark commands as deleted) as we're in a top-down pass
                 # Mark other commands on this node for deletion
                 for command in commands:
                     if not command.equals(keep):
@@ -624,7 +645,7 @@ class CSequence:
         if debug: print("Pass 3")
 
         def process_node_commands_3(commands):
-            """Process a list of commands on the same node during the 2nd pass"""
+            """Process a list of commands on the same node during the 3rd pass"""
             if len(commands) == 1:
                 return
             # If we have multiple commands (they are different as the union uniquifies), we have a conflict
@@ -662,7 +683,7 @@ class CSequence:
         if node_commands:
             process_node_commands_3(node_commands)    
         
-        # (3) Finally, collect the remaining commands
+        # (4) Finally, collect the remaining commands
         
         merger = []
         for command in union.forward():
