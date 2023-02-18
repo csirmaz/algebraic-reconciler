@@ -89,18 +89,22 @@ def get_all_mergers(session_def, debug=False):
     s = Session(session_def, use_list=True)
     assert CSequence.check_refluent(s.sequences)
     
+    mergers = []
     decisions = None
     i = 0
     while True:
         if debug: print(f"---- Run #{i} ----")
         s = Session(session_def, use_list=True) # reset flags, etc.
         decisions, merger = CSequence.get_any_merger(s.sequences, decisions=decisions, debug=debug)
-        if decisions is None:
-            if debug: print(f"No more mergers\n========== Generated {i} mergers ===========")
+        if decisions is None: # no more mergers
             break
-        print("Merger:")
-        print(merger.as_string())
+        if debug:
+            print("Merger:")
+            print(merger.as_string())
+        mergers.append(merger)
         i += 1
+    if debug: print(f"========== Generated {len(mergers)} mergers ===========")
+    return mergers
 
 
 if __name__ == '__main__':
@@ -216,22 +220,11 @@ if __name__ == '__main__':
                     d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
                     e=<1/2/3/4b|E|Fc>;
                     f=<1/2/3/4c|E|D>"""
-    get_all_mergers(sessiondef, debug=True)
+    get_all_mergers(sessiondef)
 
     sessiondef = """g=<6/7/8|F|E>.<6/7|D|E>;
                     h=<6/7/8|F|Fd>;
                     i=<6/7/8|F|D>.<6/7/8/9|E|D>;
                     j=<6/7/8b|E|Fe>"""
-    get_all_mergers(sessiondef, debug=True)
+    get_all_mergers(sessiondef)
 
-    sessiondef = """a=<1/2/3|D|E>.<1/2|D|E>;
-                    b=<1/2/3|D|E>.<1/2|D|Fa>;
-                    c=<1/2/3/4|E|D>.<1/2/3/4/5|E|Fb>;
-                    d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
-                    e=<1/2/3/4b|E|Fc>;
-                    f=<1/2/3/4c|E|D>;
-                    g=<6/7/8|F|E>.<6/7|D|E>;
-                    h=<6/7/8|F|Fd>;
-                    i=<6/7/8|F|D>.<6/7/8/9|E|D>;
-                    j=<6/7/8b|E|Fe>"""
-    get_all_mergers(sessiondef, debug=True)

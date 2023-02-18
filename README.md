@@ -98,5 +98,18 @@ s = Session("""a=<1/2|D|E>.<1|D|E>;
 print(CSequence.check_refluent([s.a, s.b, s.c, s.d, s.e]))
 ```
 
-### Algorithm 7
+### Algorithm 7 (Generating all mergers)
 
+Given a set of jointly refluent canonical command sets (or sequences), generate all possible mergers.
+
+```python
+from session import get_all_mergers
+sessiondef = """a=<1/2/3|D|E>.<1/2|D|E>;
+                b=<1/2/3|D|E>.<1/2|D|Fa>;
+                c=<1/2/3/4|E|D>.<1/2/3/4/5|E|Fb>;
+                d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
+                e=<1/2/3/4b|E|Fc>;
+                f=<1/2/3/4c|E|D>"""
+for merger in get_all_mergers(sessiondef):
+    print(merger.as_string())
+```
