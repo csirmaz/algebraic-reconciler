@@ -544,7 +544,7 @@ class CSequence:
                 keep = make_decision(commands)
                 if debug: print(f"Found multiple commands on a file, keeping {keep.as_string()}")
                 if keep.is_destructor(): # must be <n,F,E>
-                    keep.node.delete_creators_down = True
+                    keep.node.delete_creators_strictly_down = True
                     if debug: print(f"Mark {keep.node.as_string()} with delete_creators_down")
                     # We don't need to action this flag now (e.g. mark commands as deleted) as file nodes are on incomparable paths
                 elif keep.is_constructor(): # must be <n,F,D>
@@ -581,28 +581,32 @@ class CSequence:
         # (2) Second pass processing <^n,D,FE>,<n,E,DF> command pairs (bottom-up)
         if debug: print("Pass 2 (command pairs)")
 
+        prev_command = None
         for command in union.backward():
             process_flags(command)
             if command.delete:
                 continue
 
-            # Note that command.up.node.has_destructor_on_dir also reflects deletions
-            if command.node.has_destructor_on_dir and command.node.has_constructor_on_empty_child:
-                # Decide whether to keep the parent or the children
-                # Use a dummy command to represent children
-                dummy = Command(Node(['_children']), Value(Value.T_EMPTY, ''), Value(Value.T_DIR, ''))
-                keep = make_decision([command, dummy])
-                if debug: print(f"Found destructor-constructor conflict on {command.as_string()}; keeping {keep.as_string()}")
-                if keep.equals(command): # keep the destructor on the parent
-                    command.node.delete_creators_down = True
-                    if debug: print(f"Mark {command.node.as_string()} with delete_creators_down")
-                    # We don't need to action this flag now because deleting constructors
-                    # on empty children and below are independent of other conflicts of this type;
-                    # and deleting <*,D,F> (a creator but also potentially a parent in this type of conflict)
-                    # in previously processed conflicts can be done. They must have a <*,D,E> on the parent
-                    # which will be the winner.
-                else: # keep constructors on the children
-                    mark_delete_destructors_up(command)
+            # Only execute the below once on every node
+            if prev_command is None or not prev_command.node.equals(command.node):
+                # Note that command.up.node.has_destructor_on_dir also reflects deletions
+                if command.node.has_destructor_on_dir and command.node.has_constructor_on_empty_child:
+                    # Decide whether to keep the parent or the children
+                    # Use a dummy command to represent children
+                    dummy = Command(Node(['_children']), Value(Value.T_EMPTY, ''), Value(Value.T_DIR, ''))
+                    keep = make_decision([command, dummy])
+                    if debug: print(f"Found destructor-constructor conflict on {command.as_string()}; keeping {keep.as_string()}")
+                    if keep.equals(command): # keep the destructors on the parent
+                        command.node.delete_creators_strictly_down = True
+                        if debug: print(f"Mark {command.node.as_string()} with delete_creators_down")
+                        # We don't need to action this flag now because deleting constructors
+                        # on empty children and below are independent of other conflicts of this type;
+                        # and deleting <*,D,F> (a creator but also potentially a parent in this type of conflict)
+                        # in previously processed conflicts can be done. They must have a <*,D,E> on the parent
+                        # which will be the winner.
+                    else: # keep constructors on the children
+                        mark_delete_destructors_up(command)
+            prev_command = command
                     
         # (3) Conflicts on empty nodes (top-down)
         if debug: print("Pass 3 (empty nodes)")

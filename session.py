@@ -110,6 +110,22 @@ def get_all_mergers(session_def, debug=False):
 if __name__ == '__main__':
     
     # Test code
+    
+    def set_to_canonical_string(cset):
+        """Return a canonical string from a command set for testing"""
+        return CSequence.from_set(cset).order_by_node_value().as_string()
+    
+    def seq_to_canonical_string(cseq):
+        """Return a canonical string from a command sequence for testing"""
+        return cseq.order_by_node_value().as_string()
+    
+    def command_sets_equal(cset1, cset2):
+        """Return whether two command sets are equal, for testing"""
+        return set_to_canonical_string(cset1) == set_to_canonical_string(cset2)
+    
+    def cseq_sets_equal(set1, set2):
+        """Return whether two sets of command sequences are equal, for testing"""
+        return {seq_to_canonical_string(cseq) for cseq in set1} == {seq_to_canonical_string(cseq) for cseq in set2}
 
     # Test equals
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>.<d1/d2/f3|Ff1|Ff2>;
@@ -150,12 +166,12 @@ if __name__ == '__main__':
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>;
                    t=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>.<d1/d2/f3|E|Ff2>""")
-    assert CSequence.from_set_union([s.a, s.b]).as_set().slow_equals(s.t.as_set())
+    assert command_sets_equal(CSequence.from_set_union([s.a, s.b]).as_set(), s.t.as_set())
 
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2|E|Ff1>;
                    t=<d1|E|D>.<d1/d2|E|D>.<d1/d2|E|Ff1>.<d1/d2/f3|E|Ff1>""")
-    assert CSequence.from_set_union([s.a, s.b]).as_set().slow_equals(s.t.as_set())
+    assert command_sets_equal(CSequence.from_set_union([s.a, s.b]).as_set(), s.t.as_set())
     
     # Test get_greedy_merger
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
@@ -163,21 +179,21 @@ if __name__ == '__main__':
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>""")
     merger = CSequence.get_greedy_merger([s.a, s.b]).as_set()
-    assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
+    assert command_sets_equal(merger, s.t1.as_set()) or command_sets_equal(merger, s.t2.as_set())
     
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>;
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff2>""")
     merger = CSequence.get_greedy_merger([s.b, s.a]).as_set()
-    assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
+    assert command_sets_equal(merger, s.t1.as_set()) or command_sets_equal(merger, s.t2.as_set())
 
     s = Session("""a=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    b=<d1|E|D>.<d1/d2|E|Ff1>;
                    t1=<d1|E|D>.<d1/d2|E|D>.<d1/d2/f3|E|Ff1>;
                    t2=<d1|E|D>.<d1/d2|E|Ff1>""")
     merger = CSequence.get_greedy_merger([s.a, s.b]).as_set()
-    assert merger.slow_equals(s.t1.as_set()) or merger.slow_equals(s.t2.as_set())
+    assert command_sets_equal(merger, s.t1.as_set()) or command_sets_equal(merger, s.t2.as_set())
     
     # Test check_refluent
     s = Session("""a=<1|D|Ff1>;
@@ -220,7 +236,7 @@ if __name__ == '__main__':
                     d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
                     e=<1/2/3/4b|E|Fc>;
                     f=<1/2/3/4c|E|D>"""
-    get_all_mergers(sessiondef, debug=True)
+    get_all_mergers(sessiondef)
 
     sessiondef = """g=<6/7/8|F|E>.<6/7|D|E>;
                     h=<6/7/8|F|Fd>;
@@ -228,11 +244,33 @@ if __name__ == '__main__':
                     j=<6/7/8b|E|Fe>"""
     get_all_mergers(sessiondef)
 
-
     sessiondef = """g=<1/2a|D|E>.<1/2b|D|E>.<1|D|E>;
                     h=<1/2a/3|E|D>"""
-    get_all_mergers(sessiondef)
+    targets =    """t1=<1/2a|D|E>.<1/2b|D|E>.<1|D|E>;
+                    t2=<1/2a/3|E|D>.<1/2b|D|E>"""
+    mergers = get_all_mergers(sessiondef)
+    assert cseq_sets_equal(set(mergers), set(Session(targets, use_list=True).sequences))
 
     sessiondef = """a=<1/2a|D|E>.<1|D|E>;
                     b=<1/2a|D|Fa>.<1/2b|E|Fb>"""
-    get_all_mergers(sessiondef, debug=True)
+    targets =    """t1=<1|D|E>.<1/2a|D|E>;
+                    t2=<1/2a|D|Fa>.<1/2b|E|Fb>;
+                    t3=<1/2a|D|E>.<1/2b|E|Fb>"""
+    mergers = get_all_mergers(sessiondef)
+    assert cseq_sets_equal(set(mergers), set(Session(targets, use_list=True).sequences))
+    
+    sessiondef = """a=<1|D|E>;
+                    b=<1/2|E|F>;
+                    c=<1/2|E|D>;
+                    d=<1|D|F>"""
+    targets = sessiondef
+    mergers = get_all_mergers(sessiondef)
+    assert cseq_sets_equal(set(mergers), set(Session(targets, use_list=True).sequences))
+
+    sessiondef = """a=<1/2/3|E|D>;
+                    b=<1/2|D|F>;
+                    c=<1/2|D|E>.<1|D|F>"""
+    targets = sessiondef
+    mergers = get_all_mergers(sessiondef)
+    assert cseq_sets_equal(set(mergers), set(Session(targets, use_list=True).sequences))
+    
