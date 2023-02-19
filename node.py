@@ -6,10 +6,11 @@ class Node:
         - path: a list of strings
         - delete_conflicts_down: an optional Boolean flag used during constructing a merger
         - index: an optional bitmap
+        - has_destructor_on_dir: optional bool flag used by get_any_merger(): whether there is a destructor command on a directory value on this node
+        - has_constructor_on_empty_child: optional bool flag used by get_any_merger(): whether there is a constructor command on an empty value on a child noe
         - delete_creators_strictly_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output below this node
         - delete_creators_down: optional bool flag used by get_any_merger(): whether to discard commands with non-empty output on this node and below
         - delete_destructors_up: optional bool flag used by get_any_merger(): whether to discard destructors on this node (and above)
-        - has_destructor: optional bool flag used by get_any_merger(): whether there is a destructor command on this node
 
     Usage:
         paths are lists of names (strings), e.g.
@@ -26,10 +27,11 @@ class Node:
         self.path = path
         self.delete_conflicts_down = None
         self.index = None
+        self.has_destructor_on_dir = None
+        self.has_constructor_on_empty_child = None
         self.delete_creators_strictly_down = None
         self.delete_creators_down = None
         self.delete_destructors_up = None
-        self.has_destructor = None
 
 
     def as_string(self):

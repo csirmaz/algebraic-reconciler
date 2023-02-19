@@ -220,7 +220,7 @@ if __name__ == '__main__':
                     d=<1/2/3/4|E|D>.<1/2/3/4/5|E|D>.<1/2/3/4/5/6|E|D>;
                     e=<1/2/3/4b|E|Fc>;
                     f=<1/2/3/4c|E|D>"""
-    get_all_mergers(sessiondef)
+    get_all_mergers(sessiondef, debug=True)
 
     sessiondef = """g=<6/7/8|F|E>.<6/7|D|E>;
                     h=<6/7/8|F|Fd>;
@@ -228,3 +228,11 @@ if __name__ == '__main__':
                     j=<6/7/8b|E|Fe>"""
     get_all_mergers(sessiondef)
 
+
+    sessiondef = """g=<1/2a|D|E>.<1/2b|D|E>.<1|D|E>;
+                    h=<1/2a/3|E|D>"""
+    get_all_mergers(sessiondef)
+
+    sessiondef = """a=<1/2a|D|E>.<1|D|E>;
+                    b=<1/2a|D|Fa>.<1/2b|E|Fb>"""
+    get_all_mergers(sessiondef, debug=True)
