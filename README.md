@@ -5,7 +5,7 @@
 This repository hosts sample implementations of the algebraic file synchronization
 algorithms described in
 Elod P Csirmaz and Laszlo Csirmaz,
-How to Syncronize Many Filesystems in Near Linear Time.
+*How to Syncronize Many Filesystems in Near Linear Time,* available at https://arxiv.org/abs/2302.09666
 
 ## Usage
 
