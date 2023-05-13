@@ -1,4 +1,6 @@
 
+# This script measures the time it takes to create a merger on synthetic data sets
+
 from timeit import default_timer as timer
 
 from command import Command
