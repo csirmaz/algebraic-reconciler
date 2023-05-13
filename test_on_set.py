@@ -9,6 +9,24 @@ from heapsort import heap_sort
 
 
 class Test:
+    """Create a set of command sequences applied to the filesystem where
+    - at the paths "i" there are directories
+    - at the paths "i/j" there are directories
+    - at the paths "i/j/k" there are files
+    where
+    - 0 <= i < size
+    - 0 <= j < size
+    - 0 <= k < size
+    - (i,j) and (j,k) are not farther from each other than `spread` modulo `size`
+    
+    There is a command sequence associated with each user/replica.
+    User `u` has the following commands:
+    - Delete the files at i/u/k (*/u/*)
+    - Delete the directories at i/u (*/u)
+    - For x in (user-1, user, user+1) modulo `size`:
+        - Change files to directories at i/j'/x where j' != u
+        - Create files at i/j'/x/l with unique content where j' != u and 0<l<=size
+    """
     
     def __init__(self, size, spread, num_users):
         self.size = size
@@ -64,14 +82,7 @@ class Test:
             new_value = Value(Value.T_FILE, new_value)
         return Command(self.get_node(path), self.get_org_value(path), new_value)
 
-    def generte_user_commands(self, user):
-        # Delete all files at */user/*
-        # Delete directories at */user
-
-        # For x in (user-1, user, user+1):
-        #   Edit files to directories at */(!=user)/x
-        #   Create files at */(!=user)/x/* with unique content
-        
+    def generte_user_commands(self, user):        
         assert user >= 0 and user < self.size
         commands = []
         for i in range(self.size):
@@ -117,7 +128,7 @@ for experiment in range(10):
             max_size = size*(2*spread+1) + size*(2*spread+1)*(2*spread+1) + size*(2*spread+1)*(2*spread+1)*size
             for num_users in range(2, size): # number of users
                 
-                if experiment == 0:
+                if False and experiment == 0:
                     test1 = Test(size=size, spread=spread, num_users=num_users)
                     for s in test1.sequences:
                         assert CSequence.is_set_canonical(s.as_set())
