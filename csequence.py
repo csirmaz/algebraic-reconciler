@@ -169,7 +169,7 @@ class CSequence:
         
 
     @classmethod
-    def from_set_union(cls, command_sets):
+    def from_set_union(cls, command_sets, return_length=False):
         """Turn the union of some command sets into a command sequence; the order of commands is not guaranteed
 
         Arguments:
@@ -191,7 +191,9 @@ class CSequence:
             if prev_command is None or (not command.equals(prev_command)):
                 union.append(command)
             prev_command = command
-        print(f"Union is {len(union)} long for:")
+    
+        if return_length:
+            return (CSequence(union), len(union))
         return CSequence(union)
 
     
@@ -411,7 +413,7 @@ class CSequence:
 
 
     @classmethod
-    def get_any_merger(cls, command_sets, decisions=None, debug=False):
+    def get_any_merger(cls, command_sets, decisions=None, debug=False, return_lengths=False):
         """Given a set of jointly refluent canonical command sets, generate a merger.
         Suitable to produce all possible mergers; see Session.get_all_mergers().
 
@@ -512,8 +514,12 @@ class CSequence:
                     continue
                 break            
         
-        # from_set_union() applies order_by_node_value()        
-        union = cls.from_set_union(command_sets).add_up_pointers().add_backlinks()
+        # from_set_union() applies order_by_node_value()
+        if return_lengths:
+            union, len_union = cls.from_set_union(command_sets, return_length=True)
+        else:
+            union = cls.from_set_union(command_sets)
+        union = union.add_up_pointers().add_backlinks()
         
         # (0) Initialise flags in top-down order
         for command in union.forward():
@@ -703,5 +709,6 @@ class CSequence:
             for i, d in enumerate(decisions):
                 print(f"  #{i} {d['current_decision']} of {d['num_options']} for {d['comment']}")
         
-        print(f"  merger_size={len(merger)}")
+        if return_lengths:
+            return (decisions, CSequence(merger), {'union': len_union, 'merger': len(merger)})
         return (decisions, CSequence(merger))

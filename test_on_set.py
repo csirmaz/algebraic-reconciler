@@ -139,16 +139,25 @@ for spread in range(1, 6):
                 })
 
 
+num_experiments = 10
+
+# CSV header
+csv_hdr = ([
+    'spread', 'size', 'num_users', 'num_mergers', 'max_nodes', 'num_nodes', 'seq_len', 'union_len', 'merger_len', 
+    'avg_time', 'mse', 'merger_time', 'command_time'
+    ] + [f"t{i}" for i in range(num_experiments)])
+print(",".join(csv_hdr))
+
 experiments = {}
-for experiment in range(10):
+for experiment in range(num_experiments):
     random.shuffle(settings)
-    for setting in settings:
+    for set_ix, setting in enumerate(settings):
         spread = setting['spread']
         size = setting['size']
         num_users = setting['num_users']
         num_mergers = setting['num_mergers']
 
-        max_size = size*(2*spread+1) + size*(2*spread+1)*(2*spread+1) + size*(2*spread+1)*(2*spread+1)*size
+        max_nodes = size*(2*spread+1) + size*(2*spread+1)*(2*spread+1) + size*(2*spread+1)*(2*spread+1)*size
                 
         if False and experiment == 0:
             test1 = Test(size=size, spread=spread, num_users=num_users)
@@ -165,7 +174,7 @@ for experiment in range(10):
             test = Test(size=size, spread=spread, num_users=num_users) # reset flags, etc.
             gc.collect()
             start = timer()
-            decisions, merger = CSequence.get_any_merger(test.sequences, decisions=decisions, debug=False)
+            decisions, merger, lengths = CSequence.get_any_merger(test.sequences, decisions=decisions, debug=False, return_lengths=True)
             end = timer()
             time_spent += end - start
             if decisions is None: # no more mergers
@@ -175,15 +184,21 @@ for experiment in range(10):
                 break
             
         if i == num_mergers: # We have enough mergers
-            key = f"spread={spread} size={size} users={num_users} mergers={num_mergers} -> max_nodes={max_size} num_nodes={test.num_nodes} seq_len={test.sequence_length}"
-            print(f"{key} #{experiment} -> {time_spent}s")
+            exp_data = [spread, size, num_users, num_mergers, max_nodes, test.num_nodes, test.sequence_length, lengths['union'], lengths['merger']]
+            key = ":".join([str(x) for x in exp_data])
             if key not in experiments:
-                experiments[key] = []
-            experiments[key].append(time_spent)
+                experiments[key] = {'data': exp_data, 'times':[]}
+            print(f"PROGRESS {(experiment*len(settings)+set_ix)/(num_experiments*len(settings))*100}%")
+            experiments[key]['times'].append(time_spent)
 
-    time.sleep(30)
+    if experiment < num_experiments - 1:
+        time.sleep(30)
 
-print("----- AGGREGATING ------")
-for k, times in experiments.items():
-    avg = sum(times)/len(times)
-    print(f"{k} -> times: "+" ".join([str(t) for t in times])+f" average: {avg} s")
+# CSV lines
+import numpy as np
+for k, exp_data in experiments.items():
+    times = np.array(exp_data['times'])
+    avg = np.average(times)
+    mse = np.sum(np.square(times - avg))
+    csv = exp_data['data'] + [avg, mse, avg/exp_data['data'][3], avg/exp_data['data'][3]/exp_data['data'][7]] + exp_data['times']
+    print(",".join([str(x) for x in csv]))
