@@ -191,6 +191,7 @@ class CSequence:
             if prev_command is None or (not command.equals(prev_command)):
                 union.append(command)
             prev_command = command
+        print(f"Union is {len(union)} long for:")
         return CSequence(union)
 
     
@@ -702,4 +703,5 @@ class CSequence:
             for i, d in enumerate(decisions):
                 print(f"  #{i} {d['current_decision']} of {d['num_options']} for {d['comment']}")
         
+        print(f"  merger_size={len(merger)}")
         return (decisions, CSequence(merger))

@@ -2,6 +2,9 @@
 # This script measures the time it takes to create a merger on synthetic data sets
 
 from timeit import default_timer as timer
+import gc
+import random
+import time
 
 from command import Command
 from node import Node
@@ -122,46 +125,63 @@ class Test:
             self.sequences.append(self.generte_user_commands(i))
 
 
+settings = []
+for spread in range(1, 6):
+    for size in range(5, 15):
+        if 2*spread+1 > size: continue
+        for num_users in range(2, size): # number of users
+            for num_mergers in [1, 3]: # Get this many mergers
+                settings.append({
+                    'spread': spread,
+                    'size': size,
+                    'num_users': num_users,
+                    'num_mergers': num_mergers
+                })
+
+
 experiments = {}
 for experiment in range(10):
-    for spread in range(1, 6):
-        for size in range(5, 15):
-            if 2*spread+1 > size: continue
-            max_size = size*(2*spread+1) + size*(2*spread+1)*(2*spread+1) + size*(2*spread+1)*(2*spread+1)*size
-            for num_users in range(2, size): # number of users
-                
-                if False and experiment == 0:
-                    test1 = Test(size=size, spread=spread, num_users=num_users)
-                    for s in test1.sequences:
-                        assert CSequence.is_set_canonical(s.as_set())
-            
-                    test2 = Test(size=size, spread=spread, num_users=num_users)
-                    assert CSequence.check_refluent(test2.sequences)
-                    
+    random.shuffle(settings)
+    for setting in settings:
+        spread = setting['spread']
+        size = setting['size']
+        num_users = setting['num_users']
+        num_mergers = setting['num_mergers']
 
-                for num_mergers in [1, 3, 6, 9]: # Get this many mergers
+        max_size = size*(2*spread+1) + size*(2*spread+1)*(2*spread+1) + size*(2*spread+1)*(2*spread+1)*size
+                
+        if False and experiment == 0:
+            test1 = Test(size=size, spread=spread, num_users=num_users)
+            for s in test1.sequences:
+                assert CSequence.is_set_canonical(s.as_set())
+    
+            test2 = Test(size=size, spread=spread, num_users=num_users)
+            assert CSequence.check_refluent(test2.sequences)
                     
-                    decisions = None
-                    i = 0
-                    time_spent = 0
-                    while True:
-                        test = Test(size=size, spread=spread, num_users=num_users) # reset flags, etc.
-                        start = timer()
-                        decisions, merger = CSequence.get_any_merger(test.sequences, decisions=decisions, debug=False)
-                        end = timer()
-                        time_spent += end - start
-                        if decisions is None: # no more mergers
-                            break
-                        i += 1
-                        if i >= num_mergers:
-                            break
-                        
-                    if i == num_mergers: # We have enough mergers
-                        key = f"spread={spread} size={size} users={num_users} mergers={num_mergers} -> max_nodes={max_size} num_nodes={test.num_nodes} seq_len={test.sequence_length}"
-                        print(f"{key} #{experiment} -> {time_spent}s")
-                        if key not in experiments:
-                            experiments[key] = []
-                        experiments[key].append(time_spent)
+        decisions = None
+        i = 0
+        time_spent = 0
+        while True:
+            test = Test(size=size, spread=spread, num_users=num_users) # reset flags, etc.
+            gc.collect()
+            start = timer()
+            decisions, merger = CSequence.get_any_merger(test.sequences, decisions=decisions, debug=False)
+            end = timer()
+            time_spent += end - start
+            if decisions is None: # no more mergers
+                break
+            i += 1
+            if i >= num_mergers:
+                break
+            
+        if i == num_mergers: # We have enough mergers
+            key = f"spread={spread} size={size} users={num_users} mergers={num_mergers} -> max_nodes={max_size} num_nodes={test.num_nodes} seq_len={test.sequence_length}"
+            print(f"{key} #{experiment} -> {time_spent}s")
+            if key not in experiments:
+                experiments[key] = []
+            experiments[key].append(time_spent)
+
+    time.sleep(30)
 
 print("----- AGGREGATING ------")
 for k, times in experiments.items():
