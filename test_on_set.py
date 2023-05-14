@@ -195,10 +195,11 @@ for experiment in range(num_experiments):
         time.sleep(30)
 
 # CSV lines
-import numpy as np
 for k, exp_data in experiments.items():
-    times = np.array(exp_data['times'])
-    avg = np.average(times)
-    mse = np.sum(np.square(times - avg))
+    times = exp_data['times']
+    avg = sum(times) / len(times)
+    mse = [x-avg for x in times]
+    mse = [x*x for x in mse]
+    mse = sum(mse)
     csv = exp_data['data'] + [avg, mse, avg/exp_data['data'][3], avg/exp_data['data'][3]/exp_data['data'][7]] + exp_data['times']
     print(",".join([str(x) for x in csv]))
